@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poultry Coop Dashboard</title>
+
+    <!-- Load Chart.js from CDN for graph visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Basic page styling for a clean dashboard layout -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            text-align: center;
+            background: #2b4eff;
+            color: white;
+            padding: 15px;
+        }
+        .container {
+            width: 90%;
+            margin: 40px auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 40px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        canvas {
+            width: 100%;
+            height: 300px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Page Title -->
+    <h1>IoT Poultry Coop Environmental Dashboard</h1>
+
+    <!-- Chart containers -->
+    <div class="container">
+        <div class="card"><canvas id="tempChart"></canvas></div>
+        <div class="card"><canvas id="humidityChart"></canvas></div>
+        <div class="card"><canvas id="co2Chart"></canvas></div>
+        <div class="card"><canvas id="dustChart"></canvas></div>
+        <div class="card"><canvas id="ammoniaChart"></canvas></div>
+    </div>
+
+    <!-- JavaScript section for live updating dashboard -->
+    <script>
+        /*************************************
+         * STEP 1: Initialize empty data arrays
+         * These arrays will hold the latest readings.
+         *************************************/
+        const labels = [];          // time labels for the x-axis
+        const temperatureData = []; // temperature readings
+        const humidityData = [];    // humidity readings
+        const co2Data = [];         // CO₂ readings
+        const dustData = [];        // dust concentration
+        const ammoniaData = [];     // ammonia gas levels
+
+        /*************************************
+         * STEP 2: Helper function to create charts
+         * Reusable function that builds a line chart using Chart.js
+         *************************************/
+        const makeChart = (ctx, label, data, color) => {
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        borderColor: color,
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.3 // curve smoothing
+                    }]
+                },
+                options: {
+                    scales: { y: { beginAtZero: true } },
+                    animation: false // faster updates
+                }
+            });
+        };
+
+        /*************************************
+         * STEP 3: Create all five sensor charts
+         *************************************/
+        const tempChart = makeChart(document.getElementById('tempChart'), "Temperature (°C)", temperatureData, "red");
+        const humidityChart = makeChart(document.getElementById('humidityChart'), "Humidity (%)", humidityData, "blue");
+        const co2Chart = makeChart(document.getElementById('co2Chart'), "CO₂ (ppm)", co2Data, "green");
+        const dustChart = makeChart(document.getElementById('dustChart'), "Dust (µg/m³)", dustData, "orange");
+        const ammoniaChart = makeChart(document.getElementById('ammoniaChart'), "Ammonia (ppm)", ammoniaData, "purple");
+
+        /*************************************
+         * STEP 4: Function to fetch data from Django backend
+         * The /api/data/ endpoint provides simulated sensor data.
+         *************************************/
+        async function getData() {
+            // Fetch JSON data from the Django API
+            const response = await fetch("/api/data/");
+            const data = await response.json();
+
+            // Current time label
+            const time = new Date().toLocaleTimeString();
+
+            // Add new data point for each sensor
+            labels.push(time);
+            temperatureData.push(data.temperature);
+            humidityData.push(data.humidity);
+            co2Data.push(data.co2);
+            dustData.push(data.dust);
+            ammoniaData.push(data.ammonia);
+
+            // Keep only the latest 10 readings (for clarity)
+            if (labels.length > 10) {
+                labels.shift();
+                temperatureData.shift();
+                humidityData.shift();
+                co2Data.shift();
+                dustData.shift();
+                ammoniaData.shift();
+            }
+
+            // Refresh each chart with the new data
+            tempChart.update();
+            humidityChart.update();
+            co2Chart.update();
+            dustChart.update();
+            ammoniaChart.update();
+        }
+
+        /*************************************
+         * STEP 5: Update dashboard automatically every 5 seconds
+         * This ensures the graphs remain “live”.
+         *************************************/
+        setInterval(getData, 5000);
+    </script>
+</body>
+</html>
