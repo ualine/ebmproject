@@ -123,3 +123,13 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Read environment variables from Render
+SECRET_KEY = os.environ.get('SECRET_KEY', 'fallback-key-for-local-dev')
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+ALLOWED_HOSTS = ['ebmproject.onrender.com', 'localhost', '127.0.0.1']
+
